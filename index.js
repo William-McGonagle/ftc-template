@@ -1,8 +1,12 @@
+/////////////
+// IMPORTS //
+/////////////
+
+require('dotenv').config();
+
 const express = require('express');
-const app = express();
-const port = 8000;
-const keygen = require("keygenerator");
-const mysql = require('mysql');
+const port = 8000 || process.env.PORT;
+const mysql = require('mysql'); // deprecated
 const bodyParser = require('body-parser');
 const fileUpload = require('express-fileupload');
 const mime = require('mime');
@@ -10,7 +14,44 @@ const showdown  = require('showdown');
 const nodemailer = require("nodemailer");
 const bcrypt = require('bcrypt');
 const fs = require('fs');
-var pdf = require('html-pdf');
+const pdf = require('html-pdf');
+const jwt = require('jsonwebtoken');
+const Sequelize = require('sequelize');
+
+// create object instances
+
+const app = express();
+const sequelize = new Sequelize('blog', 'root', 'Beepboopbop', {
+  dialect: 'sqlite',
+  storage: 'path/to/database.sqlite'
+});
+
+///////////////
+// KEY SETUP //
+///////////////
+
+var keys = [];
+
+//Returns a New Key
+function genKey() {
+
+  var key = keygen.session_id();
+
+  keys.push(key);
+  return key;
+
+}
+
+//Returns True Or False
+function getKey(testKey) {
+
+  return keys.includes(testKey);
+
+}
+
+////////////////
+// PDF Config //
+////////////////
 
 var html = fs.readFileSync('./public/index.html', 'utf8');
 var options = {
@@ -33,11 +74,19 @@ var options = {
   "type": "pdf"
 }
 
+//////////////////
+// EMAIL CONFIG //
+//////////////////
+
 const newSubscriberPlainEmail = `
 
-  Hey! Welcome to the GFA robotics team email list! You will recieve notifications about any activity that the robotics team thinks you would like. If you would like to stop recieving these emails, or you did not want to be subscribed in the first place, you can unsubscribe from our <a href='gfa-dragonoids.com'>website</a>.
+  Hey! Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 
 `;
+
+///////////////////////////////
+// SHOWDOWN CONFIG (FOR PDF) //
+///////////////////////////////
 
 showdown.setOption('simplifiedAutoLink', true);
 showdown.setOption('parseImgDimensions', true);
@@ -48,6 +97,8 @@ showdown.setOption('ghMentions', true);
 showdown.setOption('ghMentionsLink', "http://localhost:8000/user/?id={u}");
 showdown.setOption('emoji', true);
 showdown.setOption('strikethrough', true);
+
+// I don't know what I did this for, but it is probably important
 
 var month = [
   "January",
@@ -64,60 +115,130 @@ var month = [
   "December"
 ];
 
-//LoveTheDragons is most of the passwords
+////////////////////////////////
+// SEQUELIZE MODEL DEFINITION //
+////////////////////////////////
 
-var keys = [];
-
-var con = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "Will98iam",
-  database: "dragons"
+var Users = sequelize.define('users', {
+  username: {
+    type: Sequelize.STRING
+  },
+  password: {
+    type: Sequelize.TEXT
+  },
+  description: {
+    type: Sequelize.TEXT
+  },
+  profilePicture: {
+    type: Sequelize.TEXT
+  },
+  email: {
+    type: Sequelize.TEXT
+  }
 });
 
-con.connect(function(err) {
-  if (err) throw err;
-  console.log("Connected!");
+var Journals = sequelize.define('journals', {
+  journalTitle: {
+    type: Sequelize.STRING
+  },
+  journalBody: {
+    type: Sequelize.TEXT
+  },
+  journalPublic: {
+    type: Sequelize.BOOLEAN
+  }
 });
 
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(bodyParser.json())
+var JournalTags = sequelize.define('journalTags', {
+  tagName: {
+    type: Sequelize.STRING
+  }
+});
 
+var Emailers = sequelize.define('emailers', {
+  email: {
+    type: Sequelize.TEXT
+  },
+  emailGroup: {
+    type: Sequelize.STRING
+  }
+});
+
+Users.hasMany(Journals);
+Journals.hasMany(JournalTags);
+
+sequelize.sync();
+
+////////////////////////
+// EXPRESS MIDDLEWARE //
+////////////////////////
+
+
+
+// Static Hosting
+app.use(express.static('public'));
+
+// URL Encoded Parsing and JSON Parsing
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
+// File Upload
 app.use(fileUpload({
     useTempFiles : true,
     tempFileDir : '/tmp/'
 }));
 
+// 404 Error
+app.get('*', function(req, res){
+  res.status(404).sendFile(__dirname + '/404.html');
+});
+
+
+
+////////////////////
+// EXPRESS ROUTES //
+////////////////////
+
+
+// Login Path
 app.post('/api/login/', function (req, res) {
 
-  var username = req.body.username;
-  var password = req.body.password;
+  // Check if all parameters are given
+  if (req.body.username == undefined || req.body.password == undefined) return res.json({error: "Not all parameters given."});
 
-  var sql = "SELECT ID, password FROM dragons.users WHERE username = ?;";
-  con.query(sql, [username], function (err, result) {
-    if (err) throw err;
-
-    if (result.length > 0) {
-
-      bcrypt.compare(password, result[0].password, function(err, ans) {
-
-        if (ans) {
-
-          res.json({key: genKey(), id: result[0].ID});
-
-        } else {
-
-          res.json({error: "Invalid Password."});
-
-        }
-
-      });
-
-    } else {
-
-      res.json({error: "User does not exist."});
-
+  // Find one user from the database where the username is the input username
+  Users.findOne({
+    where: {
+      username: req.body.username
     }
+  }).then(function (findData) {
+
+    // Return an error if the user does not exist
+    if (findData == null) return res.json({error: "User does not exist."});
+
+    // Do a bcrypt compare to make sure that the user does, infact, exist.
+    bcrypt.compare(req.body.password, findData.password, function(err, ans) {
+
+      // If it is a bad password, tell the user
+      if (!ans) return res.json({error: "Invalid Password."});
+
+      // Create a JWT Key for Authentication
+      let token = jwt.sign({
+         id: findData.id,
+         username: findData.username,
+         profilePicture: findData.profilePicture
+      }, process.env.privateKey);
+
+      // Return the jwt key
+      res.json({token: token});
+
+    });
+
+  }).error(function (error) {
+
+    // If there is an error, send a 500 status, and log it
+    console.log(error);
+    return res.sendStatus(500);
 
   });
 
@@ -125,73 +246,67 @@ app.post('/api/login/', function (req, res) {
 
 app.post('/api/entry/new/', function (req, res) {
 
-  var journalTitle = req.body.title;
-  var journalBody = req.body.body;
-  var journalDate = req.body.date;
+  // Authorization: Bearer ijaefjileaj.fjalfeiafafaf.jamckael
 
-  // console.log(journalDate);
-  var journalCreator = req.body.creator;
-  var public = req.body.public;
-  var journalTags = req.body.tags.trim();
-  var key = req.body.key;
+  // Check if authentication headers are working
+  if (req.headers["authorization"] == undefined) return res.sendStatus(401);
+  token = req.headers["authorization"].split(" ")[1];
+  if (token == undefined) return res.sendStatus(401);
 
-  if (journalTitle === undefined || journalBody === undefined || journalDate === undefined) {
+  // Make sure all parameters are given
+  if (req.body.title == undefined || req.body.body == undefined || req.body.date == undefined || req.body.public == undefined || req.body.tags == undefined) return res.sendStatus(400);
 
-    res.json({error: "Not All Info Provided."});
+  // Check if login is valid
+  jwt.verify(token, process.env.privateKey, function(err, decoded) {
 
-  } else {
+    // if there is an error, send a 401 status
+    if (err) return res.sendStatus(401);
 
-    if (getKey(key)) {
+    // Make journal tags into an array
+    var journalTags = req.body.tags.toUpperCase().replace(\ \g, "").split(",");
 
-      if (journalTags[journalTags.length - 1] == ",") {
+    // Create a new journal entry
+    Journals.create({
+      journalTitle: req.body.title,
+      journalBody: req.body.body,
+      journalPublic: req.body.public,
+      userId: decoded.id
+    }).then(function (data) {
 
-        journalTags = journalTags.slice(0, -1);
+      // For each tag, create a new journal tag
+      for (var i = 0; i < journalTags.length; i++) {
+
+        JournalTags.create({
+          journalsId: data.id,
+          tagName: journalTags[i]
+        }).then(function (tagData) {
+
+          // Don't need to do anything...
+
+        }).error(function (error) {
+
+          // If there is an error, send a 500 status, and log it
+          console.log(error);
+          return res.sendStatus(500);
+
+        });
 
       }
 
-      var tags = journalTags.split(",");
-
-      for (var i = 0; i < tags.length; i++) {
-
-        tags[i] = tags[i].trim();
-        tags[i] = tags[i].toUpperCase();
-
-      }
-
-      //public can equal to undefined as Not True
-      var publicText = "FALSE";
-      if (public === "TRUE") {
-
-        publicText = "TRUE";
-
-      }
-
-      var sql = "INSERT INTO `dragons`.`journals` (`journalTitle`, `journalBody`, `journalDate`, `journalCreator`, `journalPublic`) VALUES ( ? , ? , ? , ? , ? );";
-      con.query(sql, [journalTitle, journalBody, journalDate, journalCreator, publicText], function (err, result) {
-        if (err) throw err;
-
-        for (var i = 0; i < tags.length; i++) {
-
-          var nsql = "INSERT INTO `dragons`.`journalTags` (`journalID`, `tagName`) VALUES ( ? , ? );";
-          con.query(nsql, [result.insertId, tags[i]], function (err1, result1) {
-            if (err1) throw err1;
-
-
-          });
-
-        }
-
-        res.json({id: result.insertId});
-
+      // Return the ID of the newly create journal
+      return res.json({
+        id: data.id
       });
 
-    } else {
+    }).error(function (error) {
 
-      res.json({error: "Invalid Login"});
+      // If there is an error, send a 500 status, and log it
+      console.log(error);
+      return res.sendStatus(500);
 
-    }
+    });
 
-  }
+  });
 
 });
 
@@ -665,28 +780,5 @@ app.post('/api/email/send/', async function (req, res) {
 //   res.json({keySuccess: getKey(testkey)});
 //
 // });
-
-//Returns a New Key
-function genKey() {
-
-  var key = keygen.session_id();
-
-  keys.push(key);
-  return key;
-
-}
-
-//Returns True Or False
-function getKey(testKey) {
-
-  return keys.includes(testKey);
-
-}
-
-app.use(express.static('public'));
-
-app.get('*', function(req, res){
-  res.status(404).sendFile(__dirname + '/404.html');
-});
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));
