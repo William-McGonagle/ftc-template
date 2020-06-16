@@ -5,7 +5,7 @@
 require('dotenv').config();
 
 const express = require('express');                 // for server
-const port = 8000 || process.env.PORT;              // for port management
+const port = process.env.PORT || 8000;              // for port management
 const bodyParser = require('body-parser');          // for server
 const fileUpload = require('express-fileupload');   // for file management
 const mime = require('mime');                       // for file management
@@ -702,7 +702,7 @@ app.post('/api/email/add/', async function (req, res) {
 
     // create a transporter to email the client
     let transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
+      host: process.env.emailHost,
       port: 465,
       secure: true,
       auth: {
@@ -713,7 +713,7 @@ app.post('/api/email/add/', async function (req, res) {
 
     // email the client
     transporter.sendMail({
-      from: '"Greens Farms Robotics Team" <robotics@gfacademy.org>',
+      from: process.env.sender,
       to: req.body.email,
       subject: "Thanks for Joining Us!",
       text: newSubscriberPlainEmail,
@@ -758,7 +758,7 @@ app.post('/api/email/send/', async function (req, res) {
 
     // create a transporter to email the client
     let transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
+      host: process.env.emailHost,
       port: 465,
       secure: true,
       auth: {

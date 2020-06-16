@@ -5,6 +5,8 @@
 const bcrypt = require('bcrypt');
 const Sequelize = require('sequelize');
 const readlineSync = require('readline-sync');
+const fs = require('fs');
+const crypto = require('crypto');
 
 const sequelize = new Sequelize('blog', 'root', 'Beepboopbop', {
   dialect: 'sqlite',
@@ -68,7 +70,7 @@ Journals.hasMany(JournalTags);
 // QUESTIONS //
 ///////////////
 
-var responseA = readlineSync.question('Are you sure you want to run this script? Running this script will erase all data from the database. (Y/n) ');
+var responseA = readlineSync.question('Are you sure you want to run this script? Running this script will erase all data from the database, and the .env file. (Y/n) ');
 console.log("");
 
 if (responseA.toUpperCase() != "Y") {
@@ -80,6 +82,11 @@ if (responseA.toUpperCase() != "Y") {
 
 sequelize.sync({force: true}).then(function () {
 
+  var envOutput = "";
+
+  console.log("Generating JWT Private Key");
+  envOutput += `privateKey=${crypto.randomBytes(1024).toString('hex')}\n`;
+
   var responseB = readlineSync.question('admin username: ');
   console.log("");
 
@@ -88,6 +95,25 @@ sequelize.sync({force: true}).then(function () {
 
   var responseD = readlineSync.question('admin email: ');
   console.log("");
+
+  var responseE = readlineSync.question('smtp username (used to authenticate with smtp server): ');
+  console.log("");
+
+  var responseF = readlineSync.question('smtp password (used to authenticate with smtp server): ');
+  console.log("");
+
+  var responseG = readlineSync.question('smtp host (gmail: smtp.gmail.com): ');
+  console.log("");
+
+  var responseH = readlineSync.question('sender (normal: school robotics team <robotics@school.com>): ');
+  console.log("");
+
+  envOutput += `sender=${responseH}\n`;
+  envOutput += `emailHost=${responseG}\n`;
+  envOutput += `emailPassword=${responseF}\n`;
+  envOutput += `emailUsername=${responseE}\n`;
+  envOutput += `defaultDescription=This is the default user description\n`;
+  envOutput += `profilePicture=https://www.logolounge.com/wd/uploads/184_337616.jpg\n`;
 
   // create a hash of the password
   bcrypt.hash(responseC, 10, function(err, hash) {
@@ -98,6 +124,9 @@ sequelize.sync({force: true}).then(function () {
       password: hash,
       email: responseD
     }).then(function (data) {
+
+      console.log("writing the .env file");
+      fs.writeFileSync(__dirname + "/.env", envOutput);
 
       console.log("\n\n\nNow you just need to fill in the .env file. You can look at the README.md to find out how to do that.");
       return process.exit(1);
