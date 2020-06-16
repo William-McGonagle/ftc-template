@@ -18,38 +18,13 @@ const pdf = require('html-pdf');                    // for generating pdfs
 const jwt = require('jsonwebtoken');                // for authenticaiton
 const Sequelize = require('sequelize');             // for database
 
-const mysql = require('mysql'); // deprecated
-
 // create object instances
 
 const app = express();
 const sequelize = new Sequelize('blog', 'root', 'Beepboopbop', {
   dialect: 'sqlite',
-  storage: 'path/to/database.sqlite'
+  storage: 'database.sqlite'
 });
-
-///////////////
-// KEY SETUP //
-///////////////
-
-var keys = [];
-
-//Returns a New Key
-function genKey() {
-
-  var key = keygen.session_id();
-
-  keys.push(key);
-  return key;
-
-}
-
-//Returns True Or False
-function getKey(testKey) {
-
-  return keys.includes(testKey);
-
-}
 
 ////////////////
 // PDF Config //
@@ -265,7 +240,7 @@ app.post('/api/entry/new/', function (req, res) {
     if (err) return res.sendStatus(401);
 
     // Make journal tags into an array
-    var journalTags = req.body.tags.toUpperCase().replace(\ \g, "").split(",");
+    var journalTags = req.body.tags.toUpperCase().replace(/ /g, "").split(",");
 
     // Create a new journal entry
     Journals.create({
@@ -312,8 +287,9 @@ app.post('/api/entry/new/', function (req, res) {
 
 });
 
+// don't f^$k with this for a solid second... i gotta remember how it works
+/*
 
-// don't fuck with this for a solid second... i gotta remember what it does
 app.get('/api/entry/compile/', function (req, res) {
 
   var fileName = keygen.password() + "-CompiledJournal" + new Date().toDateString() + ".pdf";
@@ -358,6 +334,8 @@ app.get('/api/entry/compile/', function (req, res) {
   });
 
 });
+
+*/
 
 // edit the journal entry
 app.post('/api/entry/:id/edit/', function (req, res) {
@@ -765,69 +743,36 @@ app.post('/api/email/add/', async function (req, res) {
 // WOWOWOWOW last endpoint!!!!
 app.post('/api/email/send/', async function (req, res) {
 
-  var key = req.body.key;
+  // it would be really funny if i didn't add authentication
 
-  if (getKey(key)) {
+  // Check if authentication headers are working
+  if (req.headers["authorization"] == undefined) return res.sendStatus(401);
+  token = req.headers["authorization"].split(" ")[1];
+  if (token == undefined) return res.sendStatus(401);
 
+  // Check if login is valid
+  jwt.verify(token, process.env.privateKey, function(err, decoded) {
+
+    // check if auth is valid, if not send a 401 status
+    if (err) return res.sendStatus(401);
+
+    // create a transporter to email the client
     let transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
-      port: 587,
-      secure: false, // true for 465, false for other ports
+      port: 465,
+      secure: true,
       auth: {
-        user: "mcgonaglew@gfacademy.org",
-        pass: "nwglovbimvptzljc"
+        user: process.env.emailUsername,
+        pass: process.env.emailPassword
       }
     });
 
-    // Make a selector for all users
-
-    var whereClause = "WHERE";
-
-    if (req.body.subscribers == 'true') {
-
-      whereClause += " emailGroup='SUB'";
-
-    }
-
-    if ((req.body.subscribers == 'true' && req.body.team == 'true') || (req.body.subscribers == 'true' && req.body.merch == 'true') || (req.body.subscribers == 'true' && req.body.school == 'true')) {
-
-      whereClause += " OR";
-
-    }
-
-    if (req.body.team == 'true') {
-
-      whereClause += " emailGroup='TEAM'";
-
-    }
-
-    if ((req.body.team == 'true' && req.body.merch == 'true') || (req.body.team == 'true' && req.body.school == 'true')) {
-
-      whereClause += " OR";
-
-    }
-
-    if (req.body.merch == 'true') {
-
-      whereClause += " emailGroup='MERCH'";
-
-    }
-
-    if (req.body.merch == 'true' && req.body.school == 'true') {
-
-      whereClause += " OR";
-
-    }
-
-    if (req.body.school == 'true') {
-
-      whereClause += " emailGroup='SCHOOL'";
-
-    }
-
-    // console.log("SELECT * FROM dragons.emailers " + whereClause);
-
-    var sql = "SELECT email FROM dragons.emailers " + whereClause;
+    // allow for certain groups to be targeted
+    var sendTo = [];
+    if (req.body.subscribers == 'true') sendTo.push({emailGroup: 'SUB'});
+    if (req.body.team == 'true') sendTo.push({emailGroup: 'TEAM'});
+    if (req.body.merch == 'true') sendTo.push({emailGroup: 'MERCH'});
+    if (req.body.school == 'true') sendTo.push({emailGroup: 'SCHOOL'});
 
     // Change all of the text into 'Cool' text with markdown
 
@@ -835,52 +780,49 @@ app.post('/api/email/send/', async function (req, res) {
     var converter = new showdown.Converter();
     var emailHtml = converter.makeHtml(req.body.body);
 
-    // SQL get all the selected users
+    Emailers.findAll({
+      where: {
+        [Op.or]: sendTo
+      }
+    }).then(function (data) {
 
-    con.query(sql, function (err, result) {
-      if (err) throw err;
+      if (data == null) return res.sendStatus(404);
 
-      if (result.length > 0) {
+      for (var i = 0; i < data.length; i++) {
 
-        // Email the users with BCC or just Send each user individually
+        transporter.sendMail({
+          from: process.env.sender,
+          to: data[i].email,
+          subject: req.body.subject,
+          text: req.body.body,
+          html: emailHtml
+        }).then((info) => {
 
-        for (var i = 0; i < result.length; i++) {
+          // We don't need to long anything... or do anything... at all...
 
-          transporter.sendMail({
-            from: '"Greens Farms Robotics Team" <robotics@gfacademy.org>', // sender address
-            to: result[i].email, // list of receivers
-            subject: req.body.subject, // Subject line
-            text: req.body.body,
-            html: emailHtml
-          }).then((info) => {
+        }).catch((error) => {
 
-            // console.log("Email Sent To: " + result[i].email);
+          console.log(error);
+          return res.sendStatus(500);
 
-          }).catch((error) => {
-
-            // console.log(error);
-
-          });
-
-        }
-
-        res.json({count: result.length});
-
-      } else {
-
-        res.json({error: "No Results"});
+        });
 
       }
 
+      return res.json({count: result.length});
+
+    }).error(function (error) {
+
+      console.log(error);
+      return res.sendStatus(500);
+
     });
 
-  } else {
-
-    res.json({error: "Invalid Login"});
-
-  }
+  });
 
 });
+
+//    $2a$10$Eh8sN9d.Xd8qkLAxIGsRD.p0SxtFqck3d000/6lcS/ZWTT1KsELh.
 
 //Below request is for debugging purposes
 
