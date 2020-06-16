@@ -2,17 +2,14 @@
 // THIS FILE IS FOR GENERATING THE DATABASE AND OTHER INFORMATION //
 ////////////////////////////////////////////////////////////////////
 
+const bcrypt = require('bcrypt');
 const Sequelize = require('sequelize');
-const readline = require("readline");
+const readlineSync = require('readline-sync');
 
 const sequelize = new Sequelize('blog', 'root', 'Beepboopbop', {
   dialect: 'sqlite',
-  storage: 'database.sqlite'
-});
-
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
+  storage: 'database.sqlite',
+  logging: false
 });
 
 ////////////////////////////////
@@ -71,48 +68,52 @@ Journals.hasMany(JournalTags);
 // QUESTIONS //
 ///////////////
 
-rl.question("Are you sure you want to run this script? Running this script will erase all data from the database. (Y/n)", function(responseA) {
+var responseA = readlineSync.question('Are you sure you want to run this script? Running this script will erase all data from the database. (Y/n) ');
+console.log("");
 
-  if (responseA.toUpperCase() != "Y") return console.log("OK. process canceled");
+if (responseA.toUpperCase() != "Y") {
 
-  sequelize.sync({force: true}).then(function () {
+  console.log("OK. process canceled");
+  return process.exit(1);
 
-    rl.question("admin username: ", function(responseB) {
+}
 
-      rl.question("admin password: ", function(responseC) {
+sequelize.sync({force: true}).then(function () {
 
-        rl.question("admin email: ", function(responseD) {
+  var responseB = readlineSync.question('admin username: ');
+  console.log("");
 
-          // create a hash of the password
-          bcrypt.hash(responseC, 10, function(err, hash) {
-            if (err) return console.log("Hash Failed");
+  var responseC = readlineSync.question('admin password: ');
+  console.log("");
 
-            Users.create({
-              username: responseB,
-              password: hash,
-              email: responseD
-            }).then(function (data) {
+  var responseD = readlineSync.question('admin email: ');
+  console.log("");
 
-              console.log("Now you just need to fill in the .env file. You can look at the README.md to find out how to do that.");
+  // create a hash of the password
+  bcrypt.hash(responseC, 10, function(err, hash) {
+    if (err) return console.log("Hash Failed");
 
-            }).error(function (error) {
+    Users.create({
+      username: responseB,
+      password: hash,
+      email: responseD
+    }).then(function (data) {
 
-              console.log(error);
+      console.log("\n\n\nNow you just need to fill in the .env file. You can look at the README.md to find out how to do that.");
+      return process.exit(1);
 
-            });
+    }).error(function (error) {
 
-          });
-
-        });
-
-      });
+      console.log(`\n\n\n${error}`);
+      return process.exit(1);
 
     });
 
-  }).error(function (error) {
-
-    return console.log(error);
-
   });
+
+}).error(function (error) {
+
+  console.log(error);
+  return process.exit(1);
 
 });
