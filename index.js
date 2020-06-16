@@ -4,19 +4,21 @@
 
 require('dotenv').config();
 
-const express = require('express');
-const port = 8000 || process.env.PORT;
+const express = require('express');                 // for server
+const port = 8000 || process.env.PORT;              // for port management
+const bodyParser = require('body-parser');          // for server
+const fileUpload = require('express-fileupload');   // for file management
+const mime = require('mime');                       // for file management
+const showdown  = require('showdown');              // for generating pdfs
+const nodemailer = require("nodemailer");           // for mailing
+const bcrypt = require('bcrypt');                   // for password hashing
+const crypto = require('crypto');                   // for key gen
+const fs = require('fs');                           // for file management
+const pdf = require('html-pdf');                    // for generating pdfs
+const jwt = require('jsonwebtoken');                // for authenticaiton
+const Sequelize = require('sequelize');             // for database
+
 const mysql = require('mysql'); // deprecated
-const bodyParser = require('body-parser');
-const fileUpload = require('express-fileupload');
-const mime = require('mime');
-const showdown  = require('showdown');
-const nodemailer = require("nodemailer");
-const bcrypt = require('bcrypt');
-const fs = require('fs');
-const pdf = require('html-pdf');
-const jwt = require('jsonwebtoken');
-const Sequelize = require('sequelize');
 
 // create object instances
 
@@ -254,7 +256,7 @@ app.post('/api/entry/new/', function (req, res) {
   if (token == undefined) return res.sendStatus(401);
 
   // Make sure all parameters are given
-  if (req.body.title == undefined || req.body.body == undefined || req.body.date == undefined || req.body.public == undefined || req.body.tags == undefined) return res.sendStatus(400);
+  if (req.body.title == undefined || req.body.body == undefined || req.body.public == undefined || req.body.tags == undefined) return res.sendStatus(400);
 
   // Check if login is valid
   jwt.verify(token, process.env.privateKey, function(err, decoded) {
@@ -310,6 +312,8 @@ app.post('/api/entry/new/', function (req, res) {
 
 });
 
+
+// don't fuck with this for a solid second... i gotta remember what it does
 app.get('/api/entry/compile/', function (req, res) {
 
   var fileName = keygen.password() + "-CompiledJournal" + new Date().toDateString() + ".pdf";
@@ -355,303 +359,410 @@ app.get('/api/entry/compile/', function (req, res) {
 
 });
 
-app.post('/api/entry/edit/', function (req, res) {
+// edit the journal entry
+app.post('/api/entry/:id/edit/', function (req, res) {
 
-  var journalTitle = req.body.title;
-  var journalBody = req.body.body;
-  var journalDate = req.body.date;
+  // Check if the id exists
+  if (req.params.id == undefined) return res.sendStatus(404);
 
-  // console.log(journalDate);
+  // Check if authentication headers are working
+  if (req.headers["authorization"] == undefined) return res.sendStatus(401);
+  token = req.headers["authorization"].split(" ")[1];
+  if (token == undefined) return res.sendStatus(401);
 
-  var journalCreator = req.body.creator;
-  var public = req.body.public;
-  var id = req.body.id;
-  var key = req.body.key;
+  // Check if all parameters are given
+  if (req.body.title == undefined || req.body.body == undefined) return res.sendStatus(400);
 
-  if (getKey(key)) {
+  // Check if login is valid
+  jwt.verify(token, process.env.privateKey, function(err, decoded) {
 
-    //public can equal to undefined as Not True
-    var publicText = "FALSE";
-    if (public === "TRUE") {
+    if (err) return res.sendStatus(401);
 
-      publicText = "TRUE";
-
-    }
-
-    var sql = "UPDATE `dragons`.`journals` SET `journalTitle` = ?, `journalBody` = ?, `journalDate` = ?, `journalCreator` = ?, `journalPublic` = ? WHERE (`ID` = ? );";
-    con.query(sql, [journalTitle, journalBody, journalDate, journalCreator, publicText, id], function (err, result) {
-      if (err) throw err;
-
-      res.json({id: result.insertId});
-
-    });
-
-  } else {
-
-    res.json({error: "Invalid Login"});
-
-  }
-
-});
-
-app.post('/api/entry/delete/', function (req, res) {
-
-  var key = req.body.key;
-  var id = req.body.id;
-
-  if (getKey(key)) {
-
-    var sql = "DELETE FROM `dragons`.`journals` WHERE (`ID` = ? );";
-    con.query(sql, [id], function (err, result) {
-      if (err) throw err;
-
-      res.json({});
-
-    });
-
-  } else {
-
-    res.json({error: "Invalid Login"});
-
-  }
-
-});
-
-app.get('/api/entry/get/', function (req, res) {
-
-  var journalId = req.query.id;
-
-  if (journalId === undefined) {
-
-    res.json({error: "No Query ID"});
-
-  } else {
-
-    var sql = "SELECT * FROM dragons.journals WHERE ID= ? ;";
-    con.query(sql, [journalId], function (err, result) {
-      if (err) throw err;
-
-      if (result.length > 0) {
-
-        res.json(result[0]);
-
-      } else {
-
-        res.json({error: "Invalid Journal Entry"});
-
+    // Find one journal entry
+    Journals.findOne({
+      where: {
+        id: req.params.id
       }
+    }).then(function (findData) {
+
+      // if the data doesn't exist, send a 404 status
+      if (findData == null) return res.sendStatus(404);
+
+      // set the new variables
+      findData.journalTitle = req.body.title;
+      findData.journalBody = req.body.body;
+      findData.journalPublic = req.body.public;
+
+      // save the data (sequelize function)
+      findData.save();
+
+      // send the client the updated id. (same as the original id)
+      return res.json({id: findData.id});
+
+    }).error(function (error) {
+
+      // you know the drill, send a 500 status, and log it
+      console.log(error);
+      return res.sendStatus(500);
 
     });
 
-  }
+  });
 
 });
 
-app.post('/api/entry/privatequery/', function (req, res) {
+// delete an article
+app.post('/api/entry/:id/delete/', function (req, res) {
 
-  var key = req.body.key;
+  // check for all parameters
+  if (req.params.id == undefined) return res.sendStatus(404);
 
-  if (getKey(key)) {
+  // Check if authentication headers are working
+  if (req.headers["authorization"] == undefined) return res.sendStatus(401);
+  token = req.headers["authorization"].split(" ")[1];
+  if (token == undefined) return res.sendStatus(401);
 
-    var sql = "SELECT journals.ID, journals.journalTitle, journals.journalDate FROM dragons.journals WHERE journals.journalPublic='FALSE' LIMIT 40;";
+  // Check if login is valid
+  jwt.verify(token, process.env.privateKey, function(err, decoded) {
 
-    con.query(sql, function (err, result) {
-      if (err) throw err;
+    // check if auth is valid, if not send a 401 status
+    if (err) return res.sendStatus(401);
 
-      if (result.length > 0) {
-
-        res.json(result);
-
-      } else {
-
-        res.json({error: "No Results"});
-
+    // find the journal entry with the corresponding id
+    Journals.findOne({
+      where: {
+        id: req.params.id
       }
+    }).then(function (data) {
+
+      // if entry doesn't exist, throw a 404 status
+      if (data == null) return res.sendStatus(404);
+
+      // destroy the journal entry
+      data.destroy();
+
+      // send a 200 status
+      return res.sendStatus(200);
+
+    }).error(function (error) {
+
+      // we've been over this... log the error, and send a 500 status.
+      console.log(error);
+      return res.sendStatus(500);
 
     });
 
-  } else {
-
-    res.json({error: "Invalid Login"});
-
-  }
+  });
 
 });
 
+app.get('/api/entry/:id/', function (req, res) {
+
+  // check if the entry id exists, if not, send a 404 status
+  if (req.params.id == undefined) return res.sendStatus(404);
+
+  // Check if authentication headers are working
+  if (req.headers["authorization"] == undefined) return res.sendStatus(401);
+  token = req.headers["authorization"].split(" ")[1];
+  if (token == undefined) return res.sendStatus(401);
+
+  // Check if login is valid
+  jwt.verify(token, process.env.privateKey, function(err, decoded) {
+
+    // check if auth is valid, if not send a 401 status
+    if (err) return res.sendStatus(401);
+
+    // find a journal entry with the corresponding id
+    Journals.findOne({
+      where: {
+        id: req.params.id
+      }
+    }).then(function (data) {
+
+      // if the data doesn't exist, send a 404 status
+      if (data == null) return res.sendStatus(404);
+
+      // possibly clean the data up a bit before sending it out
+      // send the data to the client
+      return res.json(data);
+
+    }).error(function (error) {
+
+      // like has been mentioned 200 times before... log the error, send a 500 status
+      console.log(error);
+      return res.sendStatus(500);
+
+    });
+
+  });
+
+});
+
+// get all of the private entries
+app.post('/api/entry/getPrivate/', function (req, res) {
+
+  // Check if authentication headers are working
+  if (req.headers["authorization"] == undefined) return res.sendStatus(401);
+  token = req.headers["authorization"].split(" ")[1];
+  if (token == undefined) return res.sendStatus(401);
+
+  // Check if login is valid
+  jwt.verify(token, process.env.privateKey, function(err, decoded) {
+
+    // check if auth is valid, if not send a 401 status
+    if (err) return res.sendStatus(401);
+
+    // Query the Journal DB
+    Journals.findAll({
+      where: {
+        journalPublic: false
+      }
+    }).then(function (data) {
+
+      // if the data = null, send a 404 status
+      if (data == null) return res.sendStatus(404);
+
+      // possibly clean the data beforehand
+      // send the data to client
+      return res.json(data);
+
+    }).error(function (error) {
+
+      // log error and send the 500 status
+      console.log(error);
+      return res.sendStatus(500);
+
+    });
+
+  });
+
+});
+
+// Query the server for articles
 app.get('/api/entry/query/', function (req, res) {
 
-  var searchName = req.query.name;
-  var searchDate = req.query.date;
-  var searchTag = req.query.tag;
-  var sortBy = req.query.sortBy;
+  // check if querys are undefined
+  if (req.query.name == undefined || req.query.tag == undefined) return res.sendStatus(400);
 
-  var ending = "ORDER BY journals.journalDate";
+  // Check if authentication headers are working
+  if (req.headers["authorization"] == undefined) return res.sendStatus(401);
+  token = req.headers["authorization"].split(" ")[1];
+  if (token == undefined) return res.sendStatus(401);
 
-  if (sortBy === "OLDEST") {
+  // Check if login is valid
+  jwt.verify(token, process.env.privateKey, function(err, decoded) {
 
-    ending = "ORDER BY -journals.journalDate";
+    // check if auth is valid, if not send a 401 status
+    if (err) return res.sendStatus(401);
 
-  }
+    // query the database for journal entries
+    Journals.findAll({
+      where: {
+        journalTitle: {
+          [Op.like]: `%${req.query.name}%`
+        },
+        '$JournalTags.tagName$': {
+          [Op.like]: `%${req.query.tag}%`
+        }
+      }
+    }).then(function (data) {
 
-  var sql = "SELECT journals.ID, journals.journalTitle, journals.journalDate, journalTags.tagName FROM journals INNER JOIN journalTags ON journals.ID=journalTags.journalID WHERE (journals.journalTitle LIKE '%" + con.escape(searchName).slice(1, con.escape(searchName).length - 1) + "%') AND journals.journalPublic='TRUE' AND journalTags.tagName LIKE '%" + con.escape(searchTag).slice(1, con.escape(searchTag).length - 1) + "%' LIMIT 40;";
+      // if there are not entries, send a 404 status
+      if (data == null) return res.sendStatus(404);
 
-  con.query(sql, function (err, result) {
-    if (err) throw err;
+      // return the data
+      return res.json(data);
 
-    if (result.length > 0) {
+    }).error(function (error) {
 
-      res.json(result);
-
-    } else {
-
-      res.json({error: "No Results"});
-
-    }
-
-  });
-
-});
-
-app.post('/api/displayfiles/', function (req, res) {
-
-  fs.readdir(__dirname + '/public/files/', function (err, files) {
-
-    if (err) {
-
-      res.json({error: "Unable to read directory."});
-
-    } else {
-
-      res.json(files);
-
-    }
-
-  });
-
-});
-
-app.post('/api/fileupload/', function (req, res) {
-
-  var key = req.body.key;
-
-  if (getKey(key)) {
-
-    var localpath = keygen.password() + "-" + req.files.uploadedFile.name.split('.')[0] + "." + mime.extension(req.files.uploadedFile.mimetype);
-
-    req.files.uploadedFile.mv(__dirname + '/public/files/' + localpath, function(err) {
-      if (err)
-        return res.json({error: err});
-
-      res.json({url: localpath});
+      // if there is an error, send a 500 status, and log the error
+      console.log(error);
+      return res.sendStatus(500);
 
     });
 
-  } else {
-
-    res.json({error: "Invalid Login"});
-
-  }
+  });
 
 });
 
+// get files from the server
+app.get('/api/file/getAll/', function (req, res) {
+
+  // read the directory with all of the files
+  fs.readdir(__dirname + '/public/files/', function (err, files) {
+
+    // if there is an error, send a 500 status
+    if (err) return res.sendStatus(500);
+
+    // send the files to the client
+    res.json(files);
+
+  });
+
+});
+
+// upload a file to the server
+app.post('/api/file/upload/', function (req, res) {
+
+  // Check if authentication headers are working
+  if (req.headers["authorization"] == undefined) return res.sendStatus(401);
+  token = req.headers["authorization"].split(" ")[1];
+  if (token == undefined) return res.sendStatus(401);
+
+  // Check if login is valid
+  jwt.verify(token, process.env.privateKey, function(err, decoded) {
+
+    // check if auth is valid, if not send a 401 status
+    if (err) return res.sendStatus(401);
+
+    // generate the name of the file
+    var localpath = crypto.randomBytes(4).toString('hex') + "-" + req.files.uploadedFile.name.split('.')[0] + "." + mime.extension(req.files.uploadedFile.mimetype);
+
+    // move the file into the `files` directory
+    req.files.uploadedFile.mv(__dirname + '/public/files/' + localpath, function(err) {
+
+      // if there is an error, log the error and send a 500 status
+      if (err) {
+
+        console.log(err);
+        return res.sendStatus(500);
+
+      }
+
+      // send the url of the file
+      res.json({url: `/files/${localpath}`});
+
+    });
+
+  });
+
+});
+
+// create a new admin
 app.post('/api/admin/new/', function (req, res) {
 
-  var key = req.body.key;
+  // check that all values are present
+  if (res.body.email == undefined || res.body.username == undefined || res.body.password == undefined) return res.sendStatus(400);
 
-  var email = req.body.email;
-  var username = req.body.username;
-  var password = req.body.password;
+  // Check if authentication headers are working
+  if (req.headers["authorization"] == undefined) return res.sendStatus(401);
+  token = req.headers["authorization"].split(" ")[1];
+  if (token == undefined) return res.sendStatus(401);
 
-  var description = req.body.description;
-  var profilePicture = "https://www.logolounge.com/wd/uploads/184_337616.jpg";
+  // Check if login is valid
+  jwt.verify(token, process.env.privateKey, function(err, decoded) {
 
-  if (getKey(key)) {
+    // check if auth is valid, if not send a 401 status
+    if (err) return res.sendStatus(401);
 
-    var localpath = keygen.session_id() + "." + mime.extension(req.files.uploadedFile.mimetype);
+    // make sure there are default values for these
+    var description = req.body.description || process.env.defaultDescription;
+    var profilePicture = req.body.profilePicture || process.env.profilePicture;
 
-    req.files.uploadedFile.mv(__dirname + '/public/files/' + localpath, function(err) {
-      if (err)
-        return res.json({error: err});
+    // create a hash of the password
+    bcrypt.hash(req.body.password, 10, function(err, hash) {
+      if (err) return res.sendStatus(500);
 
-        profilePicture = "/files/" + localpath;
+      // create a user with the information
+      Users.create({
+        username: req.body.username,
+        password: hash,
+        email: req.body.email,
+        profilePicture: profilePicture,
+        description: description
+      }).then(function (data) {
 
-        bcrypt.hash(password, 10, function(err, hash) {
+        // create a new item on the email list
+        Emailers.create({
+          email: req.body.email,
+          emailGroup: "TEAM"
+        }).then(function (emailData) {
 
-          var sql = "INSERT INTO `dragons`.`users` (`username`, `password`, `description`, `profilePicture`, `email`) VALUES ( ? , ? , ? , ? , ? );";
-          var sql1 = "INSERT INTO `dragons`.`emailers` (`email`, `emailGroup`) VALUES ( ? , ? );";
+          // Create a JWT Key for Authentication
+          let token = jwt.sign({
+             id: data.id,
+             username: data.username,
+             profilePicture: data.profilePicture
+          }, process.env.privateKey);
 
-          con.query(sql, [username, hash, description, profilePicture, email], function (err, result) {
-            if (err) throw err;
+          // Return the jwt key
+          res.json({token: token});
 
-            con.query(sql1, [email, "TEAM"], function (err1, result1) {
-              if (err1) throw err1;
+        }).error(function (error) {
 
-              res.json({key: genKey(), id: result.insertId});
-
-            });
-
-          });
+          // log the error, send a 500 status
+          console.log(error);
+          return res.sendStatus(500);
 
         });
 
+      }).error(function (error) {
+
+        // log the error, send a 500 status
+        console.log(error);
+        return res.sendStatus(500);
+
+      });
+
     });
 
-  } else {
-
-    res.json({error: "Invalid Login"});
-
-  }
+  });
 
 });
 
+// subscribe to the mailing list
 app.post('/api/email/add/', async function (req, res) {
 
-  var email = req.body.email;
+  // check if the email exists
+  if (req.body.email == undefined) return res.sendStatus(400);
 
-  if (email === undefined) {
+  // add the user to the email table
+  Emailers.create({
+    email: req.body.email,
+    emailGroup: "SUB"
+  }).then(function (data) {
 
-    res.json({error: "No Email Provided."});
+    // create a transporter to email the client
+    let transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.emailUsername,
+        pass: process.env.emailPassword
+      }
+    });
 
-  } else {
+    // email the client
+    transporter.sendMail({
+      from: '"Greens Farms Robotics Team" <robotics@gfacademy.org>',
+      to: req.body.email,
+      subject: "Thanks for Joining Us!",
+      text: newSubscriberPlainEmail,
+      html: newSubscriberPlainEmail
+    }).then((info) => {
 
-    var sql = "INSERT INTO `dragons`.`emailers` (`email`, `emailGroup`) VALUES ( ? , 'SUB');";
-    con.query(sql, [ email ], function (err, result) {
-      if (err) throw err;
+      return res.json({response: "You have been added to the email list."});
 
-      let transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false, // true for 465, false for other ports
-        auth: {
-          user: "mcgonaglew@gfacademy.org",
-          pass: "nwglovbimvptzljc"
-        }
-      });
+    }).catch((error) => {
 
-      transporter.sendMail({
-        from: '"Greens Farms Robotics Team" <robotics@gfacademy.org>', // sender address
-        to: email, // list of receivers
-        subject: "Thanks for Joining Us!", // Subject line
-        text: newSubscriberPlainEmail,
-        html: newSubscriberPlainEmail
-      }).then((info) => {
-
-        // console.log("Email Sent To: " + result[i].email);
-
-      }).catch((error) => {
-
-        // console.log(error);
-
-      });
-
-      res.json({response: "You have been added to the email list."});
+      // if there is an error, log it, and send a 500 status
+      console.log(error);
+      return res.sendStatus(500);
 
     });
 
-  }
+  }).error(function (error) {
+
+    // if there is an error, log it, and send a 500 status
+    console.log(error);
+    return res.sendStatus(500);
+
+  });
 
 });
 
+// WOWOWOWOW last endpoint!!!!
 app.post('/api/email/send/', async function (req, res) {
 
   var key = req.body.key;
