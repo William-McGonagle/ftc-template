@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Login</title>
+    <link rel="stylesheet" href="../../style.css">
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@beta/dist/js.cookie.min.js"></script>
+    <script src="https://unpkg.com/showdown/dist/showdown.min.js" charset="utf-8"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.js" integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
+    <script src="script.js" charset="utf-8"></script>
+  </head>
+  <body>
+    <div class="dragonoidLogo"></div>
+    <div class="menu">
+      <a href="/">Home</a>
+      <a href="/members">Team</a>
+      <a href="/outreach">Outreach</a>
+      <a href="/engineering">Engineering</a>
+      <a href="/code">Code</a>
+      <a href="/admin/login">Admin</a>
+      <a href="/search">Search</a>
+    </div>
+    <form class="loginForm">
+      <h2>Login to Dragonnet</h2>
+      <label for="username">Username </label><br>
+      <input class="loginInput" type="text" name="username" id="username" placeholder="Mr. Quark"><br><br>
+      <label for="password">Password </label><br>
+      <input class="loginInput" type="password" name="password" id="password" placeholder="Enter Password"><br><br>
+      <input class="loginButton" type="submit" value="Login">
+    </form>
+  </body>
+</html>

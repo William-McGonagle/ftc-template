@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@beta/dist/js.cookie.min.js"></script>
+    <script src="https://unpkg.com/showdown/dist/showdown.min.js" charset="utf-8"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.js" integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
+    <script src="script.js" charset="utf-8"></script>
+  </head>
+  <body>
+    <div class="dragonoidLogo"></div>
+    <div class="menu">
+      <a href="/">Home</a>
+      <a href="/members">Team</a>
+      <a href="/outreach">Outreach</a>
+      <a href="/engineering">Engineering</a>
+      <a href="/code">Code</a>
+      <a href="/admin/login">Admin</a>
+      <a href="/search">Search</a>
+    </div>
+    <div class="adminOptions">
+      <div onclick="window.location.href='/admin/newJournal/'" class="adminOption">
+        <h3>Create New Journal Entry</h3>
+      </div>
+      <div onclick="window.location.href='/admin/viewprivate/'" class="adminOption">
+        <h3>View Non-Published Journal Entries</h3>
+      </div>
+      <div onclick="window.location.href='/api/entry/compile/'" class="adminOption">
+        <h3>Compile Journal Entries</h3>
+      </div>
+      <div onclick="window.location.href='/admin/add/'" class="adminOption">
+        <h3>Add New Admin Account</h3>
+      </div>
+      <div onclick="window.location.href='/admin/emailList/'" class="adminOption">
+        <h3>Email The List</h3>
+      </div>
+      <div onclick="window.location.href='/admin/upload/'" class="adminOption">
+        <h3>Upload File To Server</h3>
+      </div>
+      <div onclick="window.location.href='/admin/displayfiles/'" class="adminOption">
+        <h3>View Files From Server</h3>
+      </div>
+      <div onclick="Cookies.remove('key', undefined); window.location.href='/';" class="adminOption">
+        <h3>Logout</h3>
+      </div>
+    </div>
+    <footer>
+      <p>Copyright (c) 2020 William McGonagle All Rights Reserved.</p>
+      <p>This site was created entirely by William McGonagle in less than 6 hours overall.</p>
+    </footer>
+  </body>
+</html>

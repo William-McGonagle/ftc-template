@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="../../style.css">
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@beta/dist/js.cookie.min.js"></script>
+    <script src="https://unpkg.com/showdown/dist/showdown.min.js" charset="utf-8"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+    <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.js" integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
+    <script src="script.js" charset="utf-8"></script>
+  </head>
+  <body>
+    <div class="dragonoidLogo"></div>
+    <div class="menu">
+      <a href="/">Home</a>
+      <a href="/members">Team</a>
+      <a href="/outreach">Outreach</a>
+      <a href="/engineering">Engineering</a>
+      <a href="/code">Code</a>
+      <a href="/admin/login">Admin</a>
+      <a href="/search">Search</a>
+    </div>
+    <h3>New Journal Entry</h3>
+    <div class="adminOptions">
+      <input class="adminInput" type="text" id="articleName" placeholder="Title">
+      <input class="adminInput" type="date" id="articleDate" placeholder="Date">
+      <input class="adminInput" type="text" id="articleTags" placeholder="Tags">
+      <textarea class="adminInput" style="resize: vertical; height: 400px" id="articleBody">
+##### Attendance: Ethan Lior, Mr. Kwark, William McGonagle, Will Lopez Wortman, Henry Chang, Andrew Wagner, Oliver Weiser
+
+### Introduction/ Summary
+This is the introduction and summary. This is also brief reflection about how things are going with the robot right now. We can talk about any things that we have done as a club, or any events that have happened since the club has met last.
+
+### Goals For This Week
+- [ ] Finish Programming
+- [ ] Solve World Hunger
+
+Also, there is supposted to be a brief summary about each of these goals and why we have set them.
+
+### Process
+#### Robot Wheel Design
+This is where we talk about what we wanted this solution to be capable of doing. Maybe we also talk again about why we want this to be done.
+
+| Idea  |  Problem |
+|---|---|
+| Add Wheels  |  Doesn't Work Very Well |
+| Add Propeller  | Goes too fast  |
+| Make into Blimp  | Flying Bad |
+
+Talk about different parts of the process and different solutions that we had tried to implement. Make sure to talk about why this solution would not have been able to work out. Also use pictures to illustrate what the idea was.
+
+#### Code problems
+This is where we talk about what we wanted this solution to be capable of doing. *Maybe* we also talk again about why we want this to be done.
+
+```javascript
+// Make Sure to Comment the Code. Also Capitalize Most of the Commenting so-
+// It Looks More Comfortable
+var example = "hello!";
+alert(example);
+```
+
+Talk about different parts of the process and different solutions that we had tried to implement. Make sure to talk about why this solution would not have been able to work out. Also use pictures to illustrate what the idea was.
+
+![Image 1](http://www.placekitten.com/500/500)
+*This is a brief description of what is happening in the photo.*
+
+### Goals Completed This Week
+- [ ] Finish Programming
+- [X] Solve World Hunger
+
+Talk a bit about the big picture challenges of solving these problems. Also talk about how we will use these solutions and anything that has been learned by solving this problem.
+Make sure to talk about how these solutions will influence our chances of winning different competitions, or how these will change how we approach other problems with the robot.
+
+### Goals For Next Week
+- [ ] Actually Finish Programming
+
+Talk about why we want to set these goals, and when we want to set them by. Maybe also talk about who has been assigned to certain tasks and why they are the best fit for these tasks.
+
+### Conclusion
+Talk here more about general things. Restate some of the ideas in the introduction and what we have learned from accomplishing certain tasks. Also reference the goals that we have completed this week and the goals that we plan to complete next week.
+
+### Sources
+[Source 1](http://www.example.com)
+
+
+      </textarea>
+      <div class="adminOption" id="saveButton">
+        <h3>Save Journal Entry</h3>
+      </div>
+      <div class="adminOption" id="postButton">
+        <h3>Post Journal Entry</h3>
+      </div>
+    </div>
+    <footer>
+      <p>Copyright (c) 2020 William McGonagle All Rights Reserved.</p>
+      <p>This site was created entirely by William McGonagle in less than 6 hours overall.</p>
+    </footer>
+  </body>
+</html>
