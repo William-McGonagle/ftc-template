@@ -165,13 +165,6 @@ app.use(fileUpload({
     tempFileDir : '/tmp/'
 }));
 
-// 404 Error
-app.get('*', function(req, res){
-  res.status(404).sendFile(__dirname + '/404.html');
-});
-
-
-
 ////////////////////
 // EXPRESS ROUTES //
 ////////////////////
@@ -833,5 +826,10 @@ app.post('/api/email/send/', async function (req, res) {
 //   res.json({keySuccess: getKey(testkey)});
 //
 // });
+
+// 404 Error
+app.get('*', function(req, res){
+  res.status(404).sendFile(__dirname + '/404.html');
+});
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));

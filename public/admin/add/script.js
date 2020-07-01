@@ -11,13 +11,13 @@ $(document).ready(function() {
     e.preventDefault();
     var formData = new FormData(this);
 
-    formData.append("key", Cookies.get("key"));
     formData.append("email", $("#email").val());
     formData.append("username", $("#username").val());
     formData.append("password", $("#password").val());
-    formData.append("description", $("#description").val());
+    // formData.append("description", $("#description").val());
 
     var request = new XMLHttpRequest();
+    request.setRequestHeader('Authorization', 'Bearer ' + Cookies.get("key"));
     request.open("POST", "/api/admin/new/");
 
     request.onload = function () {
@@ -28,7 +28,7 @@ $(document).ready(function() {
 
           var response = JSON.parse(request.responseText);
 
-          Cookies.Set("key", response.key);
+          Cookies.Set("key", response.token);
           alert("Success!");
           window.location.href = "";
 

@@ -17,7 +17,7 @@ $( document ).ready(function() {
 
       if (data.error === undefined) {
 
-        Cookies.set('key', data.key);
+        Cookies.set('key', data.token);
         window.location.href = "/admin/";
 
       } else {

@@ -7,25 +7,29 @@ if (Cookies.get('key') === undefined) {
 
 $( document ).ready(function() {
 
-  $.post( "/api/displayfiles/", { key: Cookies.get('key') }, function( data ) {
+  $.ajax({
+     url: "/api/file/getAll/",
+     data: {},
+     type: "GET",
+     success: function( data ) {
 
-    $("#fileResults").empty();
+       $("#fileResults").empty();
 
-    console.log(data);
+       console.log(data);
 
-    for (var i = 0; i < data.length; i++) {
+       for (var i = 0; i < data.length; i++) {
 
-      var searchResult = $("<a></a>");
-      searchResult.attr("href", "/files/" + data[i]);
+         var searchResult = $("<a></a>");
+         searchResult.attr("href", "/files/" + data[i]);
 
-      searchResult.append("<h3>" + data[i] + "</h3>");
+         searchResult.append("<h3>" + data[i] + "</h3>");
 
-      searchResult.addClass("journalData");
+         searchResult.addClass("journalData");
 
-      $("#fileResults").append(searchResult);
+         $("#fileResults").append(searchResult);
 
-    }
+       }
 
-  });
+   }});
 
 });
