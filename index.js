@@ -815,8 +815,6 @@ app.post('/api/email/send/', async function (req, res) {
 
 });
 
-//    $2a$10$Eh8sN9d.Xd8qkLAxIGsRD.p0SxtFqck3d000/6lcS/ZWTT1KsELh.
-
 //Below request is for debugging purposes
 
 // app.get('/api/testKey/', function (req, res) {
