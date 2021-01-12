@@ -619,7 +619,6 @@ app.post('/api/email/add/', async function (req, res) {
 
 });
 
-// WOWOWOWOW last endpoint!!!!
 app.post('/api/email/send/', async function (req, res) {
 
   // it would be really funny if i didn't add authentication
@@ -655,7 +654,6 @@ app.post('/api/email/send/', async function (req, res) {
 
     // Change all of the text into 'Cool' text with markdown
 
-    showdown.setOption('completeHTMLDocument', true);
     var converter = new showdown.Converter();
     var emailHtml = converter.makeHtml(req.body.body);
 
@@ -701,19 +699,13 @@ app.post('/api/email/send/', async function (req, res) {
 
 });
 
-//Below request is for debugging purposes
-
-// app.get('/api/testKey/', function (req, res) {
-//
-//   var testkey = req.query.key;
-//
-//   res.json({keySuccess: getKey(testkey)});
-//
-// });
-
 // 404 Error
 app.get('*', function(req, res){
-  res.status(404).sendFile(__dirname + '/404.html');
+
+  res.status(404);
+
+  // todo add a 404 page back in.
+
 });
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));
