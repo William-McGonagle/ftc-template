@@ -1,5 +1,0 @@
-- [ ] Merch Store
-- [ ] Mailchip Alternative
-- [X] Upload file to server
-- [ ] Fix Tag Filtering
-- [ ] Add admin auth to all functions
