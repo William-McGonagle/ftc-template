@@ -5,18 +5,15 @@
 require('dotenv').config();
 
 const express = require('express');                 // for server
-const port = process.env.PORT || 8000;              // for port management
 const bodyParser = require('body-parser');          // for server
-const fileUpload = require('express-fileupload');   // for file management
-const mime = require('mime');                       // for file management
-const showdown  = require('showdown');              // for generating pdfs
-const nodemailer = require("nodemailer");           // for mailing
-const bcrypt = require('bcrypt');                   // for password hashing
-const crypto = require('crypto');                   // for key gen
-const fs = require('fs');                           // for file management
-const pdf = require('html-pdf');                    // for generating pdfs
-const jwt = require('jsonwebtoken');                // for authenticaiton
+const nodemailer = require("nodemailer");           // for mail
+const fs = require('fs');                           // for files
+const pdf = require('html-pdf');                    // for pdfs
+const jwt = require('jsonwebtoken');                // for security
+const crypto = require('crypto');                   // for security
+const bcrypt = require('bcrypt');                   // for security
 const Sequelize = require('sequelize');             // for database
+const port = process.env.PORT || 8000;              // for port
 
 // create object instances
 
@@ -25,55 +22,6 @@ const sequelize = new Sequelize('blog', 'root', 'Beepboopbop', {
   dialect: 'sqlite',
   storage: 'database.sqlite'
 });
-
-////////////////
-// PDF Config //
-////////////////
-
-var html = fs.readFileSync('./public/index.html', 'utf8');
-var options = {
-  "directory": "/tmp",
-  "format": "Letter",
-  "orientation": "portrait",
-  "border": {
-    "top": "1in",
-    "right": "1in",
-    "bottom": "1in",
-    "left": "1in"
-  },
-  paginationOffset: 1,
-  "footer": {
-    "height": "1mm",
-    "contents": {
-      default: '<div style="width: 100%; text-align: right;"><span style="color: #444;">{{page}}</span></div>'
-    }
-  },
-  "type": "pdf"
-}
-
-//////////////////
-// EMAIL CONFIG //
-//////////////////
-
-const newSubscriberPlainEmail = `
-
-  Hey! Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-
-`;
-
-///////////////////////////////
-// SHOWDOWN CONFIG (FOR PDF) //
-///////////////////////////////
-
-showdown.setOption('simplifiedAutoLink', true);
-showdown.setOption('parseImgDimensions', true);
-showdown.setOption('tables', true);
-showdown.setOption('ghCodeBlocks', true);
-showdown.setOption('tasklists', true);
-showdown.setOption('ghMentions', true);
-showdown.setOption('ghMentionsLink', "http://localhost:8000/user/?id={u}");
-showdown.setOption('emoji', true);
-showdown.setOption('strikethrough', true);
 
 // I don't know what I did this for, but it is probably important
 
@@ -96,20 +44,12 @@ var month = [
 // EXPRESS MIDDLEWARE //
 ////////////////////////
 
-
-
 // Static Hosting
 app.use(express.static('public'));
 
 // URL Encoded Parsing and JSON Parsing
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-
-// File Upload
-app.use(fileUpload({
-    useTempFiles : true,
-    tempFileDir : '/tmp/'
-}));
 
 ////////////////////
 // EXPRESS ROUTES //
