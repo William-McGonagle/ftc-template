@@ -92,60 +92,6 @@ var month = [
   "December"
 ];
 
-////////////////////////////////
-// SEQUELIZE MODEL DEFINITION //
-////////////////////////////////
-
-var Users = sequelize.define('users', {
-  username: {
-    type: Sequelize.STRING
-  },
-  password: {
-    type: Sequelize.TEXT
-  },
-  description: {
-    type: Sequelize.TEXT
-  },
-  profilePicture: {
-    type: Sequelize.TEXT
-  },
-  email: {
-    type: Sequelize.TEXT
-  }
-});
-
-var Journals = sequelize.define('journals', {
-  journalTitle: {
-    type: Sequelize.STRING
-  },
-  journalBody: {
-    type: Sequelize.TEXT
-  },
-  journalPublic: {
-    type: Sequelize.BOOLEAN
-  }
-});
-
-var JournalTags = sequelize.define('journalTags', {
-  tagName: {
-    type: Sequelize.STRING
-  }
-});
-
-var Emailers = sequelize.define('emailers', {
-  email: {
-    type: Sequelize.TEXT
-  },
-  emailGroup: {
-    type: Sequelize.STRING
-  }
-});
-
-Users.hasMany(Journals);
-Journals.hasMany(JournalTags);
-
-sequelize.sync();
-
 ////////////////////////
 // EXPRESS MIDDLEWARE //
 ////////////////////////
