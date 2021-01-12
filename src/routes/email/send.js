@@ -1,65 +1,72 @@
-async function Route(req, res) {
+// Since the 'body' Parameter of the HTTP Request is Pure HTML- We Are Going to Use That as the Body of the Email.
+    // TODO: Change the system to just use an array so that it is much more flexible.
 
-    
+function Route(req, res) {
 
-    // create a transporter to email the client
+    // Check If The User is Authenticated
+    if (req.user == undefined) return res.status(403).send("Not Authenticated.");
+ 
+    // Create a Transport Object for the Email System
     let transporter = nodemailer.createTransport({
-    host: process.env.emailHost,
-    port: 465,
-    secure: true,
-    auth: {
-        user: process.env.emailUsername,
-        pass: process.env.emailPassword
-    }
+        host: process.env.emailHost,
+        port: 465,
+        secure: true,
+        auth: {
+            user: process.env.emailUsername,
+            pass: process.env.emailPassword
+        }
     });
 
-    // allow for certain groups to be targeted
+    // Creating Targets for the Email
     var sendTo = [];
     if (req.body.subscribers == 'true') sendTo.push({emailGroup: 'SUB'});
     if (req.body.team == 'true') sendTo.push({emailGroup: 'TEAM'});
     if (req.body.merch == 'true') sendTo.push({emailGroup: 'MERCH'});
     if (req.body.school == 'true') sendTo.push({emailGroup: 'SCHOOL'});
 
-    // Change all of the text into 'Cool' text with markdown
-
-    var converter = new showdown.Converter();
-    var emailHtml = converter.makeHtml(req.body.body);
-
+    // Search All Users for Matching Data
     Emailers.findAll({
-    where: {
-        [Op.or]: sendTo
-    }
+        where: {
+            [Op.or]: sendTo
+        }
     }).then(function (data) {
 
-    if (data == null) return res.sendStatus(404);
+        // Make Sure that there are Users that Match that Info
+        if (data.length == 0) return res.status(404).send("No Results Matched Your Query");
 
-    for (var i = 0; i < data.length; i++) {
+        // Loop Through Users and Send an Email to Each
+        for (var i = 0; i < data.length; i++) {
 
-        transporter.sendMail({
-        from: process.env.sender,
-        to: data[i].email,
-        subject: req.body.subject,
-        text: req.body.body,
-        html: emailHtml
-        }).then((info) => {
+            // The sending of the Email is an Asyncronous Function
 
-        // We don't need to long anything... or do anything... at all...
+            transporter.sendMail({
+                from: process.env.sender,
+                to: data[i].email,
+                subject: req.body.subject,
+                text: req.body.body,
+                html: req.body.body
+            }).then((info) => {
 
-        }).catch((error) => {
+                // You can Insert Code to Log the Activity of the Mail System
 
-        console.log(error);
-        return res.sendStatus(500);
+            }).catch((error) => {
 
-        });
+                // Log Errors and Send a Message to the Client
+                console.log(error);
+                return res.status(500).send("Internal Error with Sending Emails");
 
-    }
+            });
 
-    return res.json({count: result.length});
+        }
+
+        // Return the Count of Emails Sent to the Server
+        return res.status(200).json({count: result.length});
 
     }).error(function (error) {
 
-    console.log(error);
-    return res.sendStatus(500);
+        // Log Errors and Send a Message to the Client
+        console.log(error);
+        return res.status(500).send("Internal Error with Database.");
 
     });
 
