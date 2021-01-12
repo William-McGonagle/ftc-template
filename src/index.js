@@ -51,6 +51,24 @@ app.use(express.static('public'));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+// Custom Middleware for Authentication
+app.use(function (req, res, next) {
+
+  // Check if the Authentication Headers Exist
+  if (req.headers["authorization"] == undefined) return next();
+  token = req.headers["authorization"].split(" ")[1];
+  if (token == undefined) return next();
+
+  // Check if login is valid
+  jwt.verify(token, process.env.privateKey, function(err, decoded) {
+    if (err) return next();
+
+    req.user = decoded;
+
+  });
+
+});
+
 ////////////////////
 // EXPRESS ROUTES //
 ////////////////////
