@@ -586,56 +586,7 @@ app.post('/api/admin/new/', function (req, res) {
 });
 
 // subscribe to the mailing list
-app.post('/api/email/add/', async function (req, res) {
-
-  // check if the email exists
-  if (req.body.email == undefined) return res.sendStatus(400);
-
-  // add the user to the email table
-  Emailers.create({
-    email: req.body.email,
-    emailGroup: "SUB"
-  }).then(function (data) {
-
-    // create a transporter to email the client
-    let transporter = nodemailer.createTransport({
-      host: process.env.emailHost,
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.emailUsername,
-        pass: process.env.emailPassword
-      }
-    });
-
-    // email the client
-    transporter.sendMail({
-      from: process.env.sender,
-      to: req.body.email,
-      subject: "Thanks for Joining Us!",
-      text: newSubscriberPlainEmail,
-      html: newSubscriberPlainEmail
-    }).then((info) => {
-
-      return res.json({response: "You have been added to the email list."});
-
-    }).catch((error) => {
-
-      // if there is an error, log it, and send a 500 status
-      console.log(error);
-      return res.sendStatus(500);
-
-    });
-
-  }).error(function (error) {
-
-    // if there is an error, log it, and send a 500 status
-    console.log(error);
-    return res.sendStatus(500);
-
-  });
-
-});
+app.post('/api/email/add/', );
 
 app.post('/api/email/send/', require('./routes/email/send.js'));
 

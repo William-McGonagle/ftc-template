@@ -25,7 +25,7 @@ function Route(req, res) {
     if (req.body.school == 'true') sendTo.push({emailGroup: 'SCHOOL'});
 
     // Search All Users for Matching Data
-    Emailers.findAll({
+    global.Subscribers.findAll({
         where: {
             [Op.or]: sendTo
         }
@@ -72,4 +72,5 @@ function Route(req, res) {
 
 }
 
+// Output of the File is the Route
 module.exports = Route;
